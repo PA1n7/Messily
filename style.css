@@ -1,0 +1,280 @@
+:root {
+    --bg:#89f0c6;
+    --highlight: #f089e2;
+    --lighten : rgba(255, 255, 255, 0.1);
+    --darken : rgba(0, 0, 0, 0.1);
+    --border-standard: 2px;
+    --section-height: 90vh;
+    --text: #000;
+    --ignore: #767669;
+    --bText: snow;
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    color: var(--text);
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+}
+
+body {
+    background-color: var(--bg);
+    font-family: "consolas";
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#mainWin {
+    background-color: var(--darken);
+    height: var(--section-height);
+    width: 78%;
+    position: fixed;
+    top: 5%;
+    left: 1%;
+    border-radius: var(--border-standard);
+    border: 1px solid var(--highlight);
+}
+
+#sidebar {
+    background-color: var(--darken);
+    border-radius: var(--border-standard);
+    border: 1px solid var(--highlight);
+    width: 18%;
+    height: var(--section-height);
+    position: fixed;
+    top: 5%;
+    right: 1%;
+}
+
+#sidebar * {
+    width: 100%;
+    word-break: break-all;
+    white-space: normal;
+}
+
+#sidebar p{
+    max-height: 90%;
+    overflow-y: scroll;
+}
+
+#resizer {
+    height: var(--section-height);
+    width: 2%;
+    position: fixed;
+    top: 5%;
+    cursor: e-resize;
+    /* LINE 69 */
+    left:79%;
+    background-color: var(--lighten);
+}
+
+#menuBar {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: calc((100vh - var(--section-height) - 1vh) / 2);
+    background-color: var(--lighten);
+}
+
+nav {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+
+a {
+    text-decoration: none;
+}
+
+.disabled {
+    color: var(--ignore);
+}
+
+a:not(.disabled):hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#info {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: calc((100vh - var(--section-height) - 1vh) / 2);
+    background-color: var(--lighten);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#info .spacer {
+    width: 5%;
+    height: 100%;
+}
+
+.window {
+    z-index: 100;
+    position: fixed;
+    width: calc(100vw * 3 / 4);
+    height: calc(100vh * 3 / 4);
+    background-color: var(--highlight);
+    border-radius: var(--border-standard);
+    box-shadow: 52px 39px 37px -37px var(--bg);
+    border: 1px solid var(--bText);
+}
+
+.window .resizeWindow {
+    cursor:se-resize !important;
+    position: absolute;
+    bottom:0;
+    right:0;
+}
+
+.navTop {
+    background-color: var(--lighten);
+    text-align: right;
+    width: 100%;
+    cursor: move;
+    height: 4%;
+}
+
+.navTop p {
+    height: 100%;
+    width: 15%;
+    float: right;
+    color: var(--bText)
+}
+
+.navTop p:hover {
+    background-color: red;
+    color: snow;
+    cursor: pointer;
+}
+
+#newNote {
+    visibility: hidden;
+    position: absolute;
+}
+
+.node {
+    width: 3%;
+    aspect-ratio: 1/1;
+    border-radius: 100%;
+    position: absolute;
+    cursor: pointer;
+    background-color: var(--bg);
+    transition: border 0.3s ease, transform 0.3s ease;
+}
+
+.node div {
+    width: 100%;
+    height: 100%;
+    border-radius: 100%;
+    background-color: var(--highlight);
+    transition: transform 0.3s ease;
+}
+
+.node:hover div {
+    transform: scale(0.7);
+}
+
+.node:hover {
+    border: 5px solid var(--highlight)
+}
+
+.insideText {
+    width: 95%;
+    height: 5%;
+    text-decoration: none;
+    background-color: transparent;
+    outline: none;
+    border: none;
+    overflow: hidden;
+    position: relative;
+    left: 2.5%;
+    font-size: 2vw;
+    font-weight: bolder;
+    color: var(--bText)
+}
+
+.window textarea {
+    width: 95%;
+    height: 87%;
+    background-color: transparent;
+    text-decoration: none;
+    outline: none;
+    border: 1px solid var(--bText);
+    position: relative;
+    left: 2.5%;
+    margin-top: 0.25%;
+    font-size: 1.5vw;
+    color: var(--bText);
+    resize: none;
+}
+
+.bottomButtons {
+    width: 100%;
+    height: 7%;
+    position: absolute;
+    bottom: 0;
+    font-size: 1vw;
+    display: flex;
+}
+
+.bottomButtons nav {
+    display: flex;
+    align-items:center;
+    justify-content: left;
+    padding: 0 2.5%;
+}
+
+.innerContent {
+    width: 100%;
+    height: 96%;
+}
+
+.important {
+    padding: 1px;
+    border-radius: 5px;
+    color: var(--bText);
+    border: solid 1px var(--bText);
+    transition: all 0.3s ease;
+}
+
+.important:hover {
+    background-color: var(--bText);
+    color: var(--text);
+}
+
+#alert {
+    background-color: var(--highlight);
+    width: 30%;
+    aspect-ratio: 7/3;
+    position: fixed;
+    top: -100%;
+    left: 35%;
+    border-radius: 15px;
+    z-index: 1000;
+    padding: 1%;
+    color: var(--text);
+    border: 3px solid var(--bText);
+    transition: top 0.5s ease-in;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--highlight);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bg);
+}

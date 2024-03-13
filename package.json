@@ -1,0 +1,15 @@
+{
+  "name": "messily",
+  "version": "1.0.0",
+  "description": "a notes app",
+  "main": "main.js",
+  "scripts": {
+    "start":"electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "pein",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^29.1.1"
+  }
+}

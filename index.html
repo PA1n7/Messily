@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <link rel="stylesheet" href="style.css">
+    <title>Messily</title>
+  </head>
+  <body>
+    <div id="alert">
+      <h3>Title</h3><hr>
+      <p>text</p>
+    </div>
+    <div id="mainWin"></div>
+    <div id="resizer"></div>
+    <div id="sidebar"></div>
+    <div id="menuBar"><nav>
+        <a id="newButt">➕ New Note</a>
+        <a class="disabled">🗑️ Delete Note</a>
+    </nav></div>
+    <div id="info">
+        <div class="spacer"></div>
+        <a>Messily</a>
+        <a id="clock"></a>
+        <div class="spacer"></div>
+    </div>
+    <div id="newNote">
+      <input type="text" class="insideText" placeholder="Untitled Note...">
+      <textarea name="" id="" placeholder="This is how it starts.."></textarea>
+      <div class="bottomButtons">
+        <nav>
+          <a class="important saveButt">✅ Save Note</a>
+          
+        </nav>
+        <a class="resizeWindow">↘</a>
+      </div>
+    </div>
+    <script src="page.js" defer></script>
+  </body>
+</html>
