@@ -1,7 +1,20 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
+const fs = require("node:fs")
 
+let saveFilePath = "examplesave.json"
+let noteDict = {}
+try{
+    noteDict = JSON.parse(fs.readFileSync(saveFilePath, "utf-8"));
+}catch (err){
+    noteDict = {}
+}
 let noteNum = 0;
-let noteDict = {};
+if(!(Object.keys(noteDict).length==0)){
+    noteNum = parseInt(Object.keys(noteDict)[Object.keys(noteDict).length-1])
+}
+
+console.log(noteNum)
+
 // BubbleGum
 // let userSettings = {
 //     "bg":"#89f0c6",
@@ -11,10 +24,21 @@ let noteDict = {};
 // }
 // Hecker
 let userSettings = {
-    "bg":"#121212",
-    "highlight": "#00FE00",
-    "text":"snow",
-    "bText":"black"
+    "style":{
+        "bg":"#121212",
+        "highlight": "#00FE00",
+        "text":"snow",
+        "bText":"black"
+    },
+    "alertTime":1000
+}
+
+function save(){
+    try{
+        fs.writeFileSync(saveFilePath, JSON.stringify(noteDict))
+    } catch (err){
+
+    }
 }
 
 const createWindow = () => {
@@ -37,9 +61,12 @@ app.whenReady().then(()=>{
     ipcMain.handle("addNote", addNote)
     ipcMain.handle("settings", getUsersettings)
     ipcMain.handle("getNote", noteInfo)
+    ipcMain.handle("getAllNotes", getAllNotes)
+    ipcMain.handle("editNote", editNote)
     createWindow()
 })
 
+// Line 69
 ipcMain.on("log", (event, text)=>{
     console.log(text)
 })
@@ -52,8 +79,13 @@ async function addNote(event, title, text, pos, parent){
         "pos":pos,
         "parent":parent
     }
-    console.log(noteDict)
+    save()
     return noteNum
+}
+
+async function editNote(event, id, note_info){
+    noteDict[id] = note_info
+    save()
 }
 
 async function noteInfo(event, id){
@@ -66,5 +98,8 @@ async function getUsersettings(event){
 
 app.on('window-all-closed', function () {
     if (process.platform !== 'darwin') app.quit()
-    // Line 69
 })
+
+async function getAllNotes(event){
+    return noteDict
+}

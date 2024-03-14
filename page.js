@@ -1,4 +1,7 @@
 var currentNode = null;
+let parentChange = false;
+let moveNodes = false
+let alertTimeRun = 3000
 
 hourSet = () => {
     let date = new Date()
@@ -11,35 +14,99 @@ hourSet = () => {
 
 async function loadSettings(){
     let userSettings = await window.tomain.settings()
-    for(const [key, value] of Object.entries(userSettings)){
+    for(const [key, value] of Object.entries(userSettings["style"])){
         document.documentElement.style.setProperty('--'+key, value);
     }
+    alertTimeRun = userSettings["alertTime"]
 }
 
 loadSettings()
+updateAllNodes()
+
+document.onkeydown = (ev)=>{
+    if(document.getElementsByClassName("window").length > 0)return
+    if(ev.key == "Shift"){
+        if(parentChange) return
+        if(moveNodes){
+            alert("Can't do that", "Release ctrl to enter parent mode.")
+            return
+        }
+        alert("Parent Mode", "Click on a node to set parent.")
+        parentChange = true
+    }
+    if(ev.key == "Control"){
+        if(moveNodes) return
+        if(parentChange){
+            alert("Can't do that", "Release shift to move nodes.")
+            return
+        }
+        alert("Moving Nodes", "Click on a node to move it.")
+        moveNodes = true
+    }
+}
+
+document.onkeyup = (ev)=>{
+    if(currentActiveWin != null){
+        if(ev.key == "Escape"){
+            document.body.removeChild(currentActiveWin)
+            currentActiveWin = null
+            return
+        }
+    }
+    if(document.getElementsByClassName("window").length > 0)return
+    if(ev.key == "Shift"){
+        alert("Exited Parent Mode", "Press shift again to enter parent mode again.")
+        parentChange = false
+        if(ev.ctrlKey){
+            alert("Moving Nodes", "Click on a node to move it.")
+            moveNodes = true
+        }
+    }
+    if(ev.key == "Control"){
+        alert("Nodes Locked", "Press ctrl again to move nodes again.")
+        moveNodes = false
+        if(ev.shiftKey){
+            // Line 69
+            alert("Parent Mode", "Click on a node to set parent.")
+            parentChange = true
+        }
+    }
+}
+
+defaultMouseUp = ()=>{
+    document.onmousemove = null
+}
+
+resetMouseUp = ()=>{
+    defaultMouseUp()
+    updateAllNodes()
+}
+
+document.onmouseup = defaultMouseUp
 
 document.getElementById("resizer").style.left = "79%"
 
 document.getElementById("resizer").onmousedown = (ev)=>{
     let offset = document.getElementById("resizer").style.left.replace("%", "") - (ev.clientX/window.innerWidth)*100
-    console.log(offset)
+    let changeX = 0
     document.onmousemove = (ev) => {
         let mainPerc = Math.floor((ev.clientX*10000)/window.innerWidth)/100-1
-        if (mainPerc < 20){
-            mainPerc = 20
-        }
-        if (mainPerc > 80){
-            mainPerc = 80
+        if (mainPerc < 20 || mainPerc > 80){
+            mainPerc = mainPerc<20 ? 20 : 80
         }
         mainPerc = mainPerc + offset
-        document.getElementById("mainWin").style.width = mainPerc + "%"
-        document.getElementById("sidebar").style.width = 96-mainPerc + "%"
-        document.getElementById("resizer").style.left = mainPerc + 1 + "%"
+        changeX = mainPerc-changeX
+        if(changeX != 0){
+            document.getElementById("mainWin").style.width = mainPerc + "%"
+            document.getElementById("sidebar").style.width = 96-mainPerc + "%"
+            document.getElementById("resizer").style.left = mainPerc + 1 + "%"
+            updateAllNodes()
+        }
+        changeX = mainPerc
+        document.onmouseup = ()=>{
+            document.onmousemove = null
+        }
     }
-}
-
-document.onmouseup = ()=>{
-    document.onmousemove = null
 }
 
 function clearSideBar(){
@@ -66,7 +133,6 @@ setInterval(hourSet, 5000);
 document.getElementById("newButt").onclick = createNewNoteWindow;
 
 let zIndexCounter = 1000
-// Line 69
 
 let windowsCreated = 0
 
@@ -121,7 +187,6 @@ function createNewNoteWindow(){
         }
     }
     let resizeWindow = document.getElementsByClassName("resizeWindow");
-    console.log(resizeWindow)
     for(let i = 0; i<resizeWindow.length; i++){
         resizeWindow[i].onmousedown = (e) => {
             let start = [e.clientX, e.clientY]
@@ -140,16 +205,22 @@ function createNewNoteWindow(){
     
 }
 
+let currentQueue = 0;
+
 function alert(title, text){
     let win = document.getElementById("alert")
-    win.style.zIndex = zIndexCounter*10
-    win.getElementsByTagName("h3")[0].innerText = title
-    win.getElementsByTagName("p")[0].innerText = text
-    win.style.top = "-100%"
-    win.style.top = "1%"
     setTimeout(()=>{
-        win.style.top = "-100%"
-    }, 3000)
+        win.style.zIndex = zIndexCounter*10
+        win.getElementsByTagName("h3")[0].innerText = title
+        win.getElementsByTagName("p")[0].innerText = text
+        win.style.right = "-100%"
+        win.style.right = "1%"
+        setTimeout(()=>{
+            win.style.right = "-100%"
+            currentQueue = currentQueue - alertTimeRun
+        }, alertTimeRun)
+    }, currentQueue + 100)
+    currentQueue = currentQueue + alertTimeRun
 }
 
 async function loadInfo(id){
@@ -173,25 +244,13 @@ async function loadInfo(id){
     document.getElementById("sidebar").appendChild(text)
 }
 
-async function uploadNote(){
-    let title = currentActiveWin.getElementsByTagName("input")[0].value
-    let text = currentActiveWin.getElementsByTagName("textarea")[0].value
-    if(title == ""){
-        alert("No title", "You need to set a title to save the note!")
-        currentActiveWin.getElementsByTagName("input")[0].focus()
-        return
-    }
-    let node = document.createElement("div")
+function prepareNode(node, perc_pos){
     node.classList.add("node")
-    let pos = [Math.floor(Math.random()*90), Math.floor(Math.random()*90)]
     let parentWin = document.getElementById("mainWin")
-    pos = [Math.floor((pos[0]/100)*parentWin.offsetWidth), Math.floor((pos[1]/100)*parentWin.offsetHeight)]
-    console.log(pos)
-    node.style.transform = "translate(" + pos[0] + "px" + ", " + pos[1] + "px)";
+    let nodePos = [Math.floor((perc_pos[0]/100)*parentWin.offsetWidth), Math.floor((perc_pos[1]/100)*parentWin.offsetHeight)]
+    node.style.transform = "translate(" + nodePos[0] + "px" + ", " + nodePos[1] + "px)";
     let innerNode = document.createElement("div")
     node.appendChild(innerNode)
-    noteId = await window.tomain.addNote(title, text, pos, currentNode)
-    node.id = noteId
     node.onmouseover = ()=>{
         if(currentNode == node.id) return
         let pos = parseTransform(node)
@@ -202,9 +261,52 @@ async function uploadNote(){
         let pos = parseTransform(node)
         node.style.transform = `translate(${pos[0]+5}px,${pos[1]+5}px)`
     }
-    node.onclick = (ev)=>{
+    node.onmousedown = (ev)=>{
+        if(!moveNodes) return
+        let transform = parseTransform(node)
+        transform = [ev.clientX-transform[0], ev.clientY-transform[1]]
+        let boundariesX = [0];
+        boundariesX.push(document.getElementById("mainWin").offsetWidth*0.97);
+        let boundariesY = [0];
+        boundariesY.push(document.getElementById("mainWin").offsetHeight-((boundariesX[1]*3)/97));
+        document.onmousemove = (ev)=>{
+            let newX = ev.clientX-transform[0]
+            let newY = ev.clientY-transform[1]
+            if(newX>boundariesX[1] || newX<boundariesX[0]){
+                newX = newX>boundariesX[1] ? boundariesX[1] : boundariesX[0];
+            }
+            if(newY>boundariesY[1] || newY<boundariesY[0]){
+                newY = newY>boundariesY[1] ? boundariesY[1] : boundariesY[0];
+            }
+            node.style.transform = `translate(${newX}px,${newY}px)`
+        }
+        document.onmouseup = async ()=>{
+            let nodeInfo = await window.tomain.getNote(node.id)
+            let newlocation = parseTransform(node)
+            newlocation = [
+                Math.floor((newlocation[0]/document.getElementById("mainWin").offsetWidth)*10000)/100,
+                Math.floor((newlocation[1]/document.getElementById("mainWin").offsetHeight)*10000)/100
+            ]
+            nodeInfo["pos"] = newlocation
+            await window.tomain.editNote(node.id, nodeInfo)
+            document.onmouseup = null
+            updateAllNodes()
+            return
+        }
+    }
+    node.onclick = async (ev)=>{
         loadInfo(node.id)
         if (currentNode != null){
+            if (parentChange){
+                let _tempcurrCopy = parseInt(currentNode).toString()
+                let noteInfo = await window.tomain.getNote(currentNode)
+                noteInfo["parent"] = node.id
+                console.log(node.id)
+                console.log(noteInfo)
+                await window.tomain.editNote(_tempcurrCopy, noteInfo)
+                updateAllNodes()
+                return
+            }
             let pos = parseTransform(document.getElementById(currentNode))
             document.getElementById(currentNode).style.transform = `translate(${pos[0]+5}px,${pos[1]+5}px)`
         }
@@ -214,6 +316,21 @@ async function uploadNote(){
     node.ondblclick = ()=>{
         console.log("trying to open in separate window " + node.id)
     }
+}
+
+async function uploadNote(){
+    let title = currentActiveWin.getElementsByTagName("input")[0].value
+    let text = currentActiveWin.getElementsByTagName("textarea")[0].value
+    if(title == ""){
+        alert("No title", "You need to set a title to save the note!")
+        currentActiveWin.getElementsByTagName("input")[0].focus()
+        return
+    }
+    let node = document.createElement("div")
+    let pos = [Math.floor(Math.random()*90), Math.floor(Math.random()*90)]
+    prepareNode(node, pos)
+    noteId = await window.tomain.addNote(title, text, pos, currentNode)
+    node.id = noteId
     document.getElementById('mainWin').appendChild(node)
     document.body.removeChild(currentActiveWin)
     currentActiveWin = null
@@ -227,23 +344,22 @@ async function uploadNote(){
         document.getElementById(currentNode).style.transform = `translate(${pos[0]+5}px,${pos[1]+5}px)`
         currentNode = null;
         clearSideBar()
-
     }
     currentNode = null
-    updateParents()
+    updateAllNodes()
 }
 
 async function updateParents(){
     let nodes = document.getElementsByClassName("node")
+    let allNodes = await window.tomain.getAllNotes()
     for (let i = 0; i<nodes.length; i++){
-        let nodeInfo = await window.tomain.getNote(nodes[i].id)
+        let nodeInfo = allNodes[nodes[i].id]
         if (nodeInfo["parent"] == null){
             continue
         }
-        let connect = document.getElementById("connect"+nodeInfo["parent"]+"-"+nodes[i].id)
-        if(connect == undefined){
-            connect = document.createElement("div")
-        }
+        connect = document.createElement("div")
+        connect.id = "connect"+nodeInfo["parent"]+"-"+nodes[i].id
+        connect.classList.add("connector")
         let childNode = nodes[i]
         let parentNode = document.getElementById(nodeInfo["parent"])
         let pos1 = parseTransform(childNode)
@@ -261,9 +377,7 @@ async function updateParents(){
         connect.style.backgroundColor = document.documentElement.style.getPropertyValue("--highlight");
         let m = (pos1[0]<pos2[0]) ? (pos2[1] - pos1[1])/(pos2[0] - pos1[0]) : (pos1[1] - pos2[1])/(pos1[0] - pos2[0])
         connect.style.transform = `translate(${x}px,${y}px)` + " rotate(" + (Math.atan(m)*(180/Math.PI)) + "deg)"
-        connect.id = "connect"+nodeInfo["parent"]+"-"+nodes[i].id
         document.getElementById("mainWin").appendChild(connect);
-        console.log("Appended line")
     }
 }
 
@@ -274,4 +388,17 @@ function parseTransform(element){
         basicString[i] = parseInt(basicString[i].replace("px", ""))
     }
     return basicString
+}
+
+async function updateAllNodes(){
+    document.getElementById("mainWin").innerHTML = ""
+    let allNotes = await window.tomain.getAllNotes()
+    let activeNodes = Object.keys(allNotes)
+    for (let i=0; i<activeNodes.length; i++){
+        node = document.createElement("div")
+        node.id = activeNodes[i]
+        prepareNode(node, allNotes[activeNodes[i]]["pos"])
+        document.getElementById("mainWin").appendChild(node)
+    }
+    updateParents()
 }
