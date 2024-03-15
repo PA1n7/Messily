@@ -417,6 +417,7 @@ function parseTransform(element){
     for (let i = 0; i<basicString.length; i++){
         basicString[i] = parseInt(basicString[i].replace("px", ""))
     }
+    // LINE 420
     return basicString
 }
 

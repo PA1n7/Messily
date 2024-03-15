@@ -17,3 +17,4 @@ A messy notes app created using electron JS still in development
 - Made Orion (constellation) the examplesave file
 - Added ability to undo/redo with basic command ctrl+z and ctrl+shift+z
 - Moved the line 69 comment to line 69 again
+- Added line 420 comment to line 420 in page.js
