@@ -23,7 +23,32 @@ async function loadSettings(){
 loadSettings()
 updateAllNodes()
 
-document.onkeydown = (ev)=>{
+document.getElementById("delButt").onclick = async ()=>{
+    if(currentNode == null) return
+    await window.tomain.removeNode(currentNode)
+    let pos = parseTransform(document.getElementById(currentNode))
+    document.getElementById(currentNode).style.transform = `translate(${pos[0]+5}px,${pos[1]+5}px)`
+    currentNode = null
+    updateAllNodes()
+}
+
+document.onkeydown = async (ev)=>{
+    if(ev.ctrlKey && ev.shiftKey && ev.key == "Z"){
+        let response = await window.tomain.redo()
+        if(!response){
+            alert("Can't", "Nothing to redo!")
+        }
+        updateAllNodes()
+        return
+    }
+    if(ev.ctrlKey && ev.key == "z"){
+        let response = await window.tomain.undo()
+        if(!response){
+            alert("Can't", "Nothing to undo!")
+        }
+        updateAllNodes()
+        return
+    }
     if(document.getElementsByClassName("window").length > 0)return
     if(ev.key == "Shift"){
         if(parentChange) return
@@ -41,6 +66,7 @@ document.onkeydown = (ev)=>{
             return
         }
         alert("Moving Nodes", "Click on a node to move it.")
+        // Line 69
         moveNodes = true
     }
 }
@@ -66,7 +92,6 @@ document.onkeyup = (ev)=>{
         alert("Nodes Locked", "Press ctrl again to move nodes again.")
         moveNodes = false
         if(ev.shiftKey){
-            // Line 69
             alert("Parent Mode", "Click on a node to set parent.")
             parentChange = true
         }
@@ -123,6 +148,7 @@ document.getElementById("mainWin").onclick = ()=>{
     let pos = parseTransform(document.getElementById(currentNode))
     document.getElementById(currentNode).style.transform = `translate(${pos[0]+5}px,${pos[1]+5}px)`
     currentNode = null;
+    document.getElementById("delButt").classList.add("disabled")
     clearSideBar()
 }
 
@@ -230,11 +256,16 @@ async function loadInfo(id){
     for(let i = 0; i<nodes.length; i++){
         if (nodes[i].id == id){
             nodes[i].style.border = "5px solid "+document.documentElement.style.getPropertyValue("--highlight")
-            nodes[i].getElementsByTagName("div")[0].style.backgroundColor = "transparent"
-        }else{
-            nodes[i].style.border = ""
-            nodes[i].getElementsByTagName("div")[0].style.backgroundColor = document.documentElement.style.getPropertyValue("--highlight")
+            nodes[i].getElementsByTagName("div")[0].style.backgroundColor = document.documentElement.style.getPropertyValue("--bg")
+            continue
         }
+        if(nodes[i].id == noteInfo["parent"]){
+            nodes[i].style.border = "2px solid "+document.documentElement.style.getPropertyValue("--highlight")
+            nodes[i].getElementsByTagName("div")[0].style.backgroundColor = document.documentElement.style.getPropertyValue("--bg")
+            continue
+        }
+        nodes[i].style.border = ""
+        nodes[i].getElementsByTagName("div")[0].style.backgroundColor = document.documentElement.style.getPropertyValue("--highlight")
     }
     let title = document.createElement("h3")
     let text = document.createElement("p")
@@ -301,8 +332,6 @@ function prepareNode(node, perc_pos){
                 let _tempcurrCopy = parseInt(currentNode).toString()
                 let noteInfo = await window.tomain.getNote(currentNode)
                 noteInfo["parent"] = node.id
-                console.log(node.id)
-                console.log(noteInfo)
                 await window.tomain.editNote(_tempcurrCopy, noteInfo)
                 updateAllNodes()
                 return
@@ -311,6 +340,7 @@ function prepareNode(node, perc_pos){
             document.getElementById(currentNode).style.transform = `translate(${pos[0]+5}px,${pos[1]+5}px)`
         }
         currentNode = node.id
+        if(!moveNodes) document.getElementById("delButt").classList.remove("disabled")
         ev.stopPropagation()
     }
     node.ondblclick = ()=>{

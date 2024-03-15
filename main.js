@@ -1,10 +1,27 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const fs = require("node:fs")
 
+// Will give it limit of 10
+_tempsaves = []
+
+function save(){
+    if(_tempsaves.length == 10){
+        _tempsaves.shift()
+    }
+    _tempsaves.push(structuredClone(noteDict))
+    try{
+        fs.writeFileSync(saveFilePath, JSON.stringify(noteDict))
+    } catch (err){
+
+    }
+}
+
 let saveFilePath = "examplesave.json"
 let noteDict = {}
 try{
     noteDict = JSON.parse(fs.readFileSync(saveFilePath, "utf-8"));
+    save()
+    
 }catch (err){
     noteDict = {}
 }
@@ -13,32 +30,35 @@ if(!(Object.keys(noteDict).length==0)){
     noteNum = parseInt(Object.keys(noteDict)[Object.keys(noteDict).length-1])
 }
 
-console.log(noteNum)
-
 // BubbleGum
 // let userSettings = {
-//     "bg":"#89f0c6",
-//     "highlight": "#f089e2",
-//     "text":"black",
-//     "color":"snow"
+//     "style":{
+//         "bg":"#89f0c6",
+//         "highlight": "#f089e2",
+//         "text":"black",
+//         "color":"snow"
+//     },
+//     "alertTime":3000
 // }
 // Hecker
+// let userSettings = {
+//     "style":{
+//         "bg":"#121212",
+//         "highlight": "#00FE00",
+//         "text":"snow",
+//         "bText":"black"
+//     },
+//     "alertTime":3000
+// }
+// sky
 let userSettings = {
     "style":{
-        "bg":"#121212",
-        "highlight": "#00FE00",
+        "bg":"#020751",
+        "highlight": "#bea9de",
         "text":"snow",
         "bText":"black"
     },
-    "alertTime":1000
-}
-
-function save(){
-    try{
-        fs.writeFileSync(saveFilePath, JSON.stringify(noteDict))
-    } catch (err){
-
-    }
+    "alertTime":3000
 }
 
 const createWindow = () => {
@@ -46,6 +66,7 @@ const createWindow = () => {
         width: 1280,
         height:720,
         minWidth: 960,
+        // Line 69
         minHeight:540,
         webPreferences: {
             preload: app.getAppPath()+"\\preload.js"
@@ -63,13 +84,48 @@ app.whenReady().then(()=>{
     ipcMain.handle("getNote", noteInfo)
     ipcMain.handle("getAllNotes", getAllNotes)
     ipcMain.handle("editNote", editNote)
+    ipcMain.handle("removeNode", removeNode)
+    ipcMain.handle("undo", undo)
+    ipcMain.handle("redo", redo)
     createWindow()
 })
 
-// Line 69
 ipcMain.on("log", (event, text)=>{
     console.log(text)
 })
+
+async function undo(event){
+    for(let i = 1; i<_tempsaves.length; i++){
+        if(JSON.stringify(_tempsaves[i]) === JSON.stringify(noteDict)){
+            noteDict = _tempsaves[i-1]
+            save()
+            return true
+        }
+    }
+    return false
+}
+
+async function redo(event){
+    for(let i = 0; i<_tempsaves.length-1; i++){
+        if(_tempsaves[i] == noteDict){
+            noteDict = _tempsaves[i+1]
+            save()
+            return true
+        }
+    }
+    return false
+}
+
+async function removeNode(event, id){
+    delete noteDict[id]
+    let keys = Object.keys(noteDict);
+    for(let i=0; i<keys.length; i++){
+        if(noteDict[keys[i]]["parent"] == id){
+            noteDict[keys[i]]["parent"] = null
+        }
+    }
+    save()
+}
 
 async function addNote(event, title, text, pos, parent){
     noteNum = noteNum + 1;

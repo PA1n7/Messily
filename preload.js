@@ -6,5 +6,8 @@ contextBridge.exposeInMainWorld("tomain", {
     getNote: (id) => ipcRenderer.invoke("getNote", id),
     settings: () => ipcRenderer.invoke("settings"),
     getAllNotes: () => ipcRenderer.invoke("getAllNotes"),
-    editNote: (id, info)=> ipcRenderer.invoke("editNote", id, info)
+    editNote: (id, info)=> ipcRenderer.invoke("editNote", id, info),
+    removeNode: (id) => ipcRenderer.invoke("removeNode", id),
+    undo: ()=> ipcRenderer.invoke("undo"),
+    redo: ()=> ipcRenderer.invoke("redo"),
 })
