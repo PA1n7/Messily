@@ -96,8 +96,8 @@ ipcMain.on("log", (event, text)=>{
 
 async function undo(event){
     for(let i = 1; i<_tempsaves.length; i++){
-        if(JSON.stringify(_tempsaves[i]) === JSON.stringify(noteDict)){
-            noteDict = _tempsaves[i-1]
+        if(JSON.stringify(_tempsaves[_tempsaves.length-i]) == JSON.stringify(noteDict)){
+            noteDict = _tempsaves[_tempsaves.length-i-1]
             save()
             return true
         }
