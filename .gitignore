@@ -129,6 +129,5 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-icon.ico
 icon.png
 signed.png
