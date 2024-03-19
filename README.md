@@ -2,6 +2,19 @@
 
 A messy notes app created using electron JS still in development
 
+# Download
+Click [Here](https://pein4346.itch.io/messily) to download the setup for the application.
+
+
+## Log (18/03/2024 - 19/03/2024)
+- Added settings panel
+- Added light and dark theme
+- changed settings and save file locations to final export
+- Added ability to add url, files and images to notes
+- Still created example settings file
+- Created function for setup on intial install
+- Created distributables for exe using squirrel
+
 ## Log (17/03/2024)
 - Fixed undo and redo
 - made constellation into heart

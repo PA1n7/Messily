@@ -12,8 +12,11 @@ hourSet = () => {
     document.getElementById("clock").innerText = hours + ":" + minutes;
 }
 
+let settingsDict;
+
 async function loadSettings(){
     let userSettings = await window.tomain.settings()
+    settingsDict = userSettings
     for(const [key, value] of Object.entries(userSettings["style"])){
         document.documentElement.style.setProperty('--'+key, value);
     }
@@ -30,6 +33,7 @@ document.getElementById("delButt").onclick = async ()=>{
     document.getElementById(currentNode).style.transform = `translate(${pos[0]+5}px,${pos[1]+5}px)`
     currentNode = null
     updateAllNodes()
+    clearSideBar()
 }
 
 document.onkeydown = async (ev)=>{
@@ -62,11 +66,11 @@ document.onkeydown = async (ev)=>{
     if(ev.key == "Control"){
         if(moveNodes) return
         if(parentChange){
+            // Line 69
             alert("Can't do that", "Release shift to move nodes.")
             return
         }
         alert("Moving Nodes", "Click on a node to move it.")
-        // Line 69
         moveNodes = true
     }
 }
@@ -228,12 +232,89 @@ function createNewNoteWindow(){
             }
         }
     }
+    let embedLink = currentActiveWin.getElementsByClassName("embed")[0]
+    embedLink.style.marginLeft = "5px"
+    embedLink.onclick = ()=>{
+        let url = document.createElement("input")
+        url.type = "url"
+        url.id = "url/filepath"
+        let text = document.createElement("input")
+        text.type= "text"
+        text.id = "text"
+        askWindow([url, text], ()=>{
+            if(url.value == "")return
+            if(text.value == "")text.value = "url"
+            let textarea = currentActiveWin.getElementsByClassName("contentText")[0]
+            textarea.innerHTML = textarea.innerHTML + `\n<a href='${url.value}' target='_blank'>${text.value}</a>`
+        })
+    }
+    let embedFile = currentActiveWin.getElementsByClassName("file")[0]
+    embedFile.style.marginLeft = "5px"
+    embedFile.onclick =async ()=>{
+        let filePath = await window.tomain.getFile()
+        if(filePath.filePaths[0] == undefined) return
+        let text = document.createElement("input")
+        text.type = "text"
+        text.id = "text"
+        askWindow([text], ()=>{
+            if(text.value == "")text.value = filePath.filePaths[0]
+            let textarea = currentActiveWin.getElementsByClassName("contentText")[0]
+            textarea.innerHTML = textarea.innerHTML + `\n<a href='${filePath.filePaths[0]}' target='_blank'>${text.value}</a>`
+        })
+    }
+    let embedImage = currentActiveWin.getElementsByClassName("image")[0]
+    embedImage.style.marginLeft = "5px"
+    embedImage.onclick =async ()=>{
+        let filePath = await window.tomain.getImg()
+        if(filePath.filePaths[0] == undefined) return
+        let text = document.createElement("input")
+        text.type = "text"
+        text.id = "alt text"
+        askWindow([text], ()=>{
+            if(text.value == "")text.value = filePath.filePaths[0]
+            let textarea = currentActiveWin.getElementsByClassName("contentText")[0]
+            textarea.innerHTML = textarea.innerHTML + `\n<img src="${filePath.filePaths[0]}" alt="${text.value}" width="100%">`
+        })
+    }
     
+}
+
+function askWindow(inputs, action){
+    let window = document.createElement("div")
+    window.id = "askWindow"
+    window.style.zIndex = zIndexCounter*100
+    window.style.width = "50%";
+    window.style.height = "50%";
+    window.style.position = "absolute"
+    window.style.top = "25%"
+    window.style.left = "25%"
+    window.style.backgroundColor = "var(--highlight)"
+    window.style.borderRadius = "15px"
+    window.style.border = "solid 1px var(--bText)"
+    window.style.padding = "10px"
+    for(let i = 0; i<inputs.length; i++){
+        let title = document.createElement("h1")
+        title.innerText = inputs[i].id
+        window.appendChild(title)
+        window.appendChild(inputs[i])
+    }
+    let br = document.createElement("br")
+    let submitButton = document.createElement("a")
+    submitButton.innerText = "Submit"
+    submitButton.onclick = ()=>{
+        document.body.removeChild(window)
+        action()
+    }
+    window.appendChild(br.cloneNode(true))
+    window.appendChild(br.cloneNode(true))
+    window.appendChild(submitButton)
+    document.body.appendChild(window)
 }
 
 let currentQueue = 0;
 
 function alert(title, text){
+    let _copyAlert = parseInt(alertTimeRun.toString())
     let win = document.getElementById("alert")
     setTimeout(()=>{
         win.style.zIndex = zIndexCounter*10
@@ -243,7 +324,7 @@ function alert(title, text){
         win.style.right = "1%"
         setTimeout(()=>{
             win.style.right = "-100%"
-            currentQueue = currentQueue - alertTimeRun
+            currentQueue = currentQueue - _copyAlert
         }, alertTimeRun)
     }, currentQueue + 100)
     currentQueue = currentQueue + alertTimeRun
@@ -269,8 +350,8 @@ async function loadInfo(id){
     }
     let title = document.createElement("h3")
     let text = document.createElement("p")
-    title.innerText = noteInfo["title"]
-    text.innerText = noteInfo["text"]
+    title.innerHTML = noteInfo["title"]
+    text.innerHTML = noteInfo["text"]
     document.getElementById("sidebar").appendChild(title)
     document.getElementById("sidebar").appendChild(text)
 }
@@ -326,6 +407,8 @@ function prepareNode(node, perc_pos){
         }
     }
     node.onclick = async (ev)=>{
+        ev.stopPropagation()
+        if(currentNode == node.id) return
         loadInfo(node.id)
         if (currentNode != null){
             if (parentChange){
@@ -334,6 +417,7 @@ function prepareNode(node, perc_pos){
                 noteInfo["parent"] = node.id
                 await window.tomain.editNote(_tempcurrCopy, noteInfo)
                 updateAllNodes()
+                // LINE 420
                 return
             }
             let pos = parseTransform(document.getElementById(currentNode))
@@ -341,16 +425,16 @@ function prepareNode(node, perc_pos){
         }
         currentNode = node.id
         if(!moveNodes) document.getElementById("delButt").classList.remove("disabled")
-        ev.stopPropagation()
+        prevnode = currentNode
     }
     node.ondblclick = ()=>{
-        console.log("trying to open in separate window " + node.id)
+        openEdit(node.id)
     }
 }
 
 async function uploadNote(){
     let title = currentActiveWin.getElementsByTagName("input")[0].value
-    let text = currentActiveWin.getElementsByTagName("textarea")[0].value
+    let text = currentActiveWin.getElementsByClassName("contentText")[0].innerHTML
     if(title == ""){
         alert("No title", "You need to set a title to save the note!")
         currentActiveWin.getElementsByTagName("input")[0].focus()
@@ -417,7 +501,6 @@ function parseTransform(element){
     for (let i = 0; i<basicString.length; i++){
         basicString[i] = parseInt(basicString[i].replace("px", ""))
     }
-    // LINE 420
     return basicString
 }
 
@@ -432,4 +515,239 @@ async function updateAllNodes(){
         document.getElementById("mainWin").appendChild(node)
     }
     updateParents()
+}
+
+async function openEdit(id){
+    let noteInfo = await window.tomain.getNote(id)
+    createNewNoteWindow()
+    let saveButton = currentActiveWin.getElementsByClassName("saveButt")[0]
+    let title = currentActiveWin.getElementsByTagName("input")[0]
+    let content = currentActiveWin.getElementsByClassName("contentText")[0]
+    title.value = noteInfo["title"]
+    content.innerHTML = noteInfo["text"]
+    saveButton.onclick = async()=>{
+        document.body.removeChild(currentActiveWin)
+        noteInfo["title"] = title.value
+        noteInfo["text"] = content.innerHTML
+        window.tomain.editNote(id, noteInfo)
+        currentActiveWin = null
+        loadInfo(id)
+    }
+}
+
+document.getElementById("settings").onclick = async ()=>{
+    createNewNoteWindow()
+    let innerContent = currentActiveWin.getElementsByClassName("innerContent")[0]
+    let buttons = currentActiveWin.getElementsByClassName("bottomButtons")[0].getElementsByTagName("nav")[0]
+    let title = currentActiveWin.getElementsByTagName("input")[0]
+    let content = currentActiveWin.getElementsByClassName("contentText")[0]
+    innerContent.getElementsByClassName("bottomButtons")[0].removeChild(buttons);
+    innerContent.removeChild(title);
+    innerContent.removeChild(content);
+    preloadedSettings = {
+        "BubbleGum":{
+            "style":{
+                "bg":"#89f0c6",
+                "highlight": "#f089e2",
+                "text":"#000000",
+                "bText":"#FFFAFA"
+            },
+            "alertTime":3000
+        },
+        "Hecker":{
+            "style":{
+                "bg":"#121212",
+                "highlight": "#00FE00",
+                "text":"#FFFAFA",
+                "bText":"#000000"
+            },
+            "alertTime":3000
+        },
+        "sky":{
+            "style":{
+                "bg":"#020751",
+                "highlight": "#bea9de",
+                "text":"#FFFAFA",
+                "bText":"#000000"
+            },
+            "alertTime":3000
+        },
+        "light":{
+            "style":{
+                "bg":"#FFFAFA",
+                "highlight":"#CCC5C5",
+                "text":"#000000",
+                "bText":"#000000"
+            },
+            "alertTime":3000
+        },
+        "dark":{
+            "style":{
+                "bg":"#121212",
+                "highlight":"#282A3A",
+                "text":"#FFFAFA",
+                "bText":"#FFFAFA"
+            },
+            "alertTime":3000
+        }
+    }
+    let settingsWin = document.getElementById("settingsWin")
+    let palettes = Object.keys(preloadedSettings)
+    for(let i = 0; i< palettes.length; i++){
+        let paletteName = document.createElement("h1")
+        paletteName.style.marginLeft = "15px"
+        paletteName.innerText = palettes[i]
+        let palette = settingsWin.getElementsByClassName("colorPalette")[0]
+        palette = palette.cloneNode(true)
+        let baseline = palette.getElementsByClassName("square")[0]
+        let bgsquare = baseline.cloneNode(true)
+        let highsquare = baseline.cloneNode(true)
+        bgsquare.style.backgroundColor = preloadedSettings[palettes[i]]["style"]["bg"]
+        bgsquare.style.color = preloadedSettings[palettes[i]]["style"]["text"]
+        highsquare.style.backgroundColor = preloadedSettings[palettes[i]]["style"]["highlight"]
+        highsquare.style.color = preloadedSettings[palettes[i]]["style"]["bText"]
+        bgsquare.innerText="test"
+        highsquare.innerText = "test"
+        palette.removeChild(baseline)
+        palette.appendChild(bgsquare)
+        palette.appendChild(highsquare)
+        palette.onclick = async ()=>{
+            await window.tomain.updateSettingValue(preloadedSettings[palettes[i]])
+            document.getElementById("bgIdentifier").style.backgroundColor = "var(--bg)"
+            document.getElementById("highIdentifier").style.backgroundColor = "var(--highlight)"
+            document.getElementById("bgSelectorFont").value = preloadedSettings[palettes[i]]["style"]["text"]
+            document.getElementById("highSelectorFont").value = preloadedSettings[palettes[i]]["style"]["bText"]
+            document.getElementById("bgSelector").value = preloadedSettings[palettes[i]]["style"]["bg"]
+            document.getElementById("highSelector").value = preloadedSettings[palettes[i]]["style"]["highlight"]
+            document.getElementById("alertSelector").value = preloadedSettings[palettes[i]]["alertTime"]
+            document.getElementById("alertNum").value = preloadedSettings[palettes[i]]["alertTime"]
+            loadSettings()
+            updateAllNodes()
+        }
+        innerContent.appendChild(paletteName)
+        innerContent.appendChild(palette)
+    }
+    let sectiontitle = document.createElement("h1")
+    sectiontitle.innerText = "Custom Settings"
+    innerContent.appendChild(sectiontitle)
+    let alertBar = document.createElement("input")
+    alertBar.id = "alertSelector"
+    alertBar.type = "range"
+    alertBar.min = "1"
+    alertBar.max = "10000"
+    alertBar.value = alertTimeRun
+    let prev = document.createElement("p")
+    prev.style.fontWeight = "bold"
+    prev.style.display = "contents"
+    prev.id = "alertNum"
+    prev.innerText = alertBar.value
+    alertBar.onmousedown = ()=>{
+        document.onmousemove = ()=>{
+            prev.innerText = alertBar.value
+            document.onmouseup = ()=>{
+                document.onmousemove = null
+            }
+        }
+    }
+    alertBar.onchange = async ()=>{
+        prev.innerText = alertBar.value
+        settingsDict["alertTime"] = parseInt(alertBar.value)
+        await window.tomain.updateSettingValue(settingsDict)
+        loadSettings()
+        alert("New Alert Time", "This is how long alerts will be shown for")
+    }
+    alertBar.style.marginLeft = "15px"
+    let alertBarTitle = document.createElement("h1")
+    alertBarTitle.style.marginLeft = "15px"
+    alertBarTitle.innerText = "Alert Time"
+    alertBar.style.height = "5%"
+    alertBar.style.width = "75%"
+    innerContent.appendChild(alertBarTitle)
+    innerContent.appendChild(alertBar)
+    innerContent.appendChild(prev)
+    {
+        let bgTitle = document.createElement("h1")
+        bgTitle.innerText = "Background"
+        bgTitle.style.marginLeft = "15px"
+        let square = document.createElement("div")
+        square.id = "bgIdentifier"
+        square.style.width = "15%"
+        square.style.aspectRatio = "1/1"
+        square.style.backgroundColor = "var(--bg)"
+        square.style.color = "var(--text)"
+        square.innerText = "test"
+        square.style.marginLeft = "15px"
+        square.style.border = "1px solid var(--bg)"
+        let fontColor = document.createElement("input")
+        fontColor.type = "color"
+        fontColor.value = settingsDict["style"]["text"]
+        fontColor.id = "bgSelectorFont"
+        fontColor.style.marginLeft = "15px"
+        let squareColor = document.createElement("input")
+        squareColor.type = "color"
+        squareColor.value = settingsDict["style"]["bg"]
+        squareColor.id = "bgSelector"
+        squareColor.style.marginLeft = "15px"
+        squareColor.onchange = async ()=>{
+            settingsDict["style"]["bg"] = squareColor.value
+            window.tomain.updateSettingValue(settingsDict)
+            loadSettings()
+            updateAllNodes()
+        }
+        fontColor.onchange = async ()=>{
+            document.onmousemove = null
+            settingsDict["style"]["text"] = fontColor.value
+            window.tomain.updateSettingValue(settingsDict)
+            loadSettings()
+        }
+        innerContent.appendChild(bgTitle)
+        innerContent.appendChild(square)
+        innerContent.appendChild(squareColor)
+        innerContent.appendChild(fontColor)
+    }
+    {
+        let highTitle = document.createElement("h1")
+        highTitle.innerText = "Highlight"
+        let square = document.createElement("div")
+        square.id = "highIdentifier"
+        highTitle.style.marginLeft = "15px"
+        square.style.width = "15%"
+        square.style.aspectRatio = "1/1"
+        square.style.backgroundColor = "var(--highlight)"
+        square.style.color = "var(--bText)"
+        square.innerText = "test"
+        square.style.marginLeft = "15px"
+        square.style.border = "1px solid var(--bg)"
+        let fontColor = document.createElement("input")
+        fontColor.type = "color"
+        fontColor.value = settingsDict["style"]["bText"]
+        fontColor.id = "highSelectorFont"
+        fontColor.style.marginLeft = "15px"
+        let squareColor = document.createElement("input")
+        squareColor.type = "color"
+        squareColor.value = settingsDict["style"]["highlight"]
+        squareColor.id = "highSelector"
+        squareColor.style.marginLeft = "15px"
+        squareColor.onchange = async ()=>{
+            settingsDict["style"]["highlight"] = squareColor.value
+            window.tomain.updateSettingValue(settingsDict)
+            loadSettings()
+            updateAllNodes()
+        }
+        fontColor.onchange = async ()=>{
+            document.onmousemove = null
+            settingsDict["style"]["bText"] = fontColor.value
+            window.tomain.updateSettingValue(settingsDict)
+            loadSettings()
+        }
+        innerContent.appendChild(highTitle)
+        innerContent.appendChild(square)
+        innerContent.appendChild(squareColor)
+        innerContent.appendChild(fontColor)
+    }
+    let spacer = document.createElement("div")
+    spacer.style.height="7%"
+    spacer.style.width="100%"
+    console.log(spacer)
+    innerContent.appendChild(spacer)
 }

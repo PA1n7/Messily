@@ -30,15 +30,23 @@
         <div class="spacer"></div>
         <a>Messily</a>
         <a id="clock"></a>
-        <div class="spacer"></div>
+        <a id="settings">⚙</a>
+        <!-- <div class="spacer"></div> -->
+    </div>
+    <div id="settingsWin">
+      <div class="colorPalette">
+        <div class="square"></div>
+      </div>
     </div>
     <div id="newNote">
-      <input type="text" class="insideText" placeholder="Untitled Note...">
-      <textarea name="" id="" placeholder="This is how it starts.."></textarea>
+      <input type="text" class="insideText" placeholder="Untitled Note..." spellcheck="false">
+      <div contenteditable="true" class = "contentText" spellcheck="false"></div>
       <div class="bottomButtons">
         <nav>
           <a class="important saveButt">✅ Save Note</a>
-          
+          <a class="embed">🔗</a>
+          <a class="file">📁</a>
+          <a class="image">📷</a>
         </nav>
         <a class="resizeWindow">↘</a>
       </div>

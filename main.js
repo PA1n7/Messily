@@ -1,8 +1,10 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
 const fs = require("node:fs")
 
 // Will give it limit of 10
 _tempsaves = []
+
+if (require('electron-squirrel-startup')) app.quit();
 
 function save(){
     if(_tempsaves.length == 10){
@@ -16,7 +18,9 @@ function save(){
     }
 }
 
-let saveFilePath = "examplesave.json"
+let saveFilePath = app.getPath("appData") + "/save.json"
+let userSettingsPath = app.getPath("userData") + "/settings.json"
+
 let noteDict = {}
 try{
     noteDict = JSON.parse(fs.readFileSync(saveFilePath, "utf-8"));
@@ -24,41 +28,37 @@ try{
     
 }catch (err){
     noteDict = {}
+    save()
 }
 let noteNum = 0;
 if(!(Object.keys(noteDict).length==0)){
     noteNum = parseInt(Object.keys(noteDict)[Object.keys(noteDict).length-1])
 }
 
-// BubbleGum
-// let userSettings = {
-//     "style":{
-//         "bg":"#89f0c6",
-//         "highlight": "#f089e2",
-//         "text":"black",
-//         "color":"snow"
-//     },
-//     "alertTime":3000
-// }
-// Hecker
-// let userSettings = {
-//     "style":{
-//         "bg":"#121212",
-//         "highlight": "#00FE00",
-//         "text":"snow",
-//         "bText":"black"
-//     },
-//     "alertTime":3000
-// }
-// sky
-let userSettings = {
-    "style":{
-        "bg":"#020751",
-        "highlight": "#bea9de",
-        "text":"snow",
-        "bText":"black"
-    },
-    "alertTime":3000
+let userSettings = {}
+
+try {
+    userSettings = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
+    saveSettings()
+}catch(err){
+    userSettings = {
+        "style":{
+            "bg":"#89f0c6",
+            "highlight": "#f089e2",
+            "text":"#000000",
+            "color":"#FFF1F1"
+        },
+        "alertTime":3000
+    }
+    saveSettings()
+}
+
+function saveSettings(){
+    try{
+        fs.writeFileSync(userSettingsPath, JSON.stringify(userSettings))
+    } catch (err){
+
+    }
 }
 
 const createWindow = () => {
@@ -70,12 +70,16 @@ const createWindow = () => {
         minHeight:540,
         webPreferences: {
             preload: app.getAppPath()+"\\preload.js"
-        }
+        },
+        icon: app.getAppPath() + "/icon.ico"
     })
 
     win.loadFile("index.html")
     win.setMenu(null)
-    win.webContents.openDevTools()
+    win.webContents.setWindowOpenHandler((details)=>{
+        shell.openExternal(details.url);
+        return {action:"deny"}
+    })
 }
 
 app.whenReady().then(()=>{
@@ -87,12 +91,37 @@ app.whenReady().then(()=>{
     ipcMain.handle("removeNode", removeNode)
     ipcMain.handle("undo", undo)
     ipcMain.handle("redo", redo)
+    ipcMain.handle("updateSettings", updateSettings)
+    ipcMain.handle("getFile", openFile)
+    ipcMain.handle("getImg", openImage)
     createWindow()
 })
 
 ipcMain.on("log", (event, text)=>{
     console.log(text)
 })
+
+async function openFile(event){
+    let filePath = dialog.showOpenDialog({
+        properties:["openFile"],
+        filters: {
+            name:"All files",
+            extensions:["*"]
+        }
+    })
+    return filePath
+}
+
+async function openImage(event){
+    let imagePath = dialog.showOpenDialog({
+        properties:["openFile"],
+        filters: {
+            name:"Images",
+            extensions:["jpg", "png", "gif", "webp"]
+        }
+    })
+    return imagePath
+}
 
 async function undo(event){
     for(let i = 1; i<_tempsaves.length; i++){
@@ -150,6 +179,11 @@ async function noteInfo(event, id){
 
 async function getUsersettings(event){
     return userSettings
+}
+
+async function updateSettings(event, settings){
+    userSettings = settings
+    saveSettings()
 }
 
 app.on('window-all-closed', function () {

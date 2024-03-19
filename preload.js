@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld("tomain", {
     removeNode: (id) => ipcRenderer.invoke("removeNode", id),
     undo: ()=> ipcRenderer.invoke("undo"),
     redo: ()=> ipcRenderer.invoke("redo"),
+    updateSettingValue: (settings)=>ipcRenderer.invoke("updateSettings", settings),
+    getFile: ()=>ipcRenderer.invoke("getFile"),
+    getImg: ()=>ipcRenderer.invoke("getImg"),
 })
